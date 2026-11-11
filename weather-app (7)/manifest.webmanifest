@@ -1,0 +1,16 @@
+{
+  "name": "天氣查詢",
+  "short_name": "天氣",
+  "description": "Weather lookup with forecast, air quality and a rotating globe",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef3f9",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2a74dc">
+  <title>天氣查詢</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="filter-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <filter id="sketch" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="5"/>
+    </filter>
+  </svg>
+  <main class="app">
+    <header class="topbar">
+      <h1 class="brand"><span id="brand-mark" class="brand-mark"></span><span data-i18n="app.title">天氣查詢</span></h1>
+      <div class="header-controls">
+        <div class="toggle-group">
+          <button id="depth-toggle" type="button" aria-pressed="true" data-i18n-attrs="aria-label:depth.label,title:depth.label" aria-label="3D 立體效果" title="3D 立體效果">3D</button>
+        </div>
+        <div class="toggle-group lang-toggle" role="group" data-i18n-attrs="aria-label:lang.group" aria-label="語言">
+          <button type="button" data-lang="zh">中</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+        <div class="toggle-group unit-toggle" role="group" data-i18n-attrs="aria-label:unit.group" aria-label="溫度單位">
+          <button type="button" data-units="metric">°C</button>
+          <button type="button" data-units="imperial">°F</button>
+        </div>
+      </div>
+    </header>
+
+    <section id="sky" class="sky" data-state="welcome" data-theme="clear-day" data-night="false">
+      <div id="sky-back" class="sky-layer sky-back"></div>
+
+      <div class="sky-content">
+        <div class="sky-top">
+          <form id="search-form" class="search-form" novalidate>
+            <div class="search-field">
+              <span class="search-icon" data-icon="search"></span>
+              <input
+                id="city-input"
+                type="text"
+                autocomplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-controls="suggestions"
+                aria-expanded="false"
+                data-i18n-attrs="placeholder:search.placeholder,aria-label:search.label"
+                placeholder="輸入城市英文名稱,例如 Taipei"
+                aria-label="城市名稱"
+              >
+              <ul id="suggestions" class="suggestions" role="listbox" data-i18n-attrs="aria-label:search.suggestions" aria-label="城市建議" hidden></ul>
+            </div>
+            <button id="search-button" class="primary-button" type="submit"><span data-i18n="search.submit">查詢</span></button>
+            <button id="locate-button" class="ghost-button" type="button"><span data-icon="pin"></span><span data-i18n="search.locate">使用我的位置</span></button>
+          </form>
+          <p id="form-hint" class="form-hint" role="alert" hidden></p>
+        </div>
+
+        <div class="sky-main">
+          <div id="welcome" class="welcome">
+            <h2 class="welcome-title" data-i18n="welcome.title">今天天氣如何?</h2>
+            <p class="welcome-subtitle" data-i18n="welcome.subtitle">輸入城市名稱,或點擊地球上的任何地方。</p>
+            <ul id="examples" class="examples"></ul>
+          </div>
+
+          <div id="status" class="status" role="status" hidden></div>
+
+          <section id="result" class="result" hidden>
+            <p id="offline-note" class="offline-note" role="status" hidden></p>
+            <div class="result-head">
+              <div class="result-place">
+                <h2 id="result-city" class="result-city"></h2>
+                <p id="result-time" class="result-time"></p>
+                <button id="favorite-toggle" class="favorite-toggle" type="button" aria-pressed="false"></button>
+              </div>
+              <div class="result-condition">
+                <span id="result-icon" class="result-icon"></span>
+                <p id="result-description" class="result-description"></p>
+              </div>
+            </div>
+            <p id="result-temp" class="result-temp"></p>
+          </section>
+        </div>
+      </div>
+
+      <div id="sky-front" class="sky-layer sky-front"></div>
+    </section>
+
+    <div class="collections">
+      <section id="recent" class="chip-section" hidden>
+        <h2 class="chip-title" data-i18n="recent.title">最近查詢</h2>
+        <ul id="recent-list" class="chip-list"></ul>
+      </section>
+
+      <section id="favorites" class="chip-section" hidden>
+        <h2 class="chip-title" data-i18n="favorites.title">收藏城市</h2>
+        <ul id="favorites-list" class="chip-list"></ul>
+      </section>
+    </div>
+
+    <div class="layout">
+      <div class="primary">
+        <section id="details" class="panel details" hidden>
+          <dl class="stats">
+            <div class="stat"><dt><span data-icon="thermometer"></span><span data-i18n="detail.feels">體感溫度</span></dt><dd id="detail-feels"></dd></div>
+            <div class="stat">
+              <dt><span data-icon="drop"></span><span data-i18n="detail.humidity">濕度</span></dt>
+              <dd id="detail-humidity"></dd>
+              <span class="meter"><span id="humidity-meter" class="meter-fill"></span></span>
+            </div>
+            <div class="stat">
+              <dt><span data-icon="wind"></span><span data-i18n="detail.wind">風速</span></dt>
+              <dd class="wind-reading"><span id="detail-wind"></span><svg id="wind-arrow" class="wind-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M6 9l6-6 6 6"/></svg></dd>
+            </div>
+            <div class="stat"><dt><span data-icon="gauge"></span><span data-i18n="detail.pressure">氣壓</span></dt><dd id="detail-pressure"></dd></div>
+            <div class="stat">
+              <dt><span data-icon="umbrella"></span><span data-i18n="detail.rainChance">降雨機率</span></dt>
+              <dd id="detail-rain-chance"></dd>
+              <span class="meter"><span id="rain-meter" class="meter-fill"></span></span>
+            </div>
+            <div class="stat"><dt><span data-icon="drops"></span><span data-i18n="detail.rainAmount">降雨量(3 小時)</span></dt><dd id="detail-rain-amount"></dd></div>
+            <div class="stat">
+              <dt><span data-icon="cloud"></span><span data-i18n="detail.clouds">雲量</span></dt>
+              <dd id="detail-clouds"></dd>
+              <span class="meter"><span id="clouds-meter" class="meter-fill"></span></span>
+            </div>
+            <div class="stat"><dt><span data-icon="eye"></span><span data-i18n="detail.visibility">能見度</span></dt><dd id="detail-visibility"></dd></div>
+          </dl>
+
+          <div class="daylight">
+            <svg id="daylight-arc" class="daylight-arc" viewBox="0 0 300 100" aria-hidden="true">
+              <path class="daylight-track" d="M20 88A130 74 0 0 1 280 88" pathLength="100"/>
+              <path id="daylight-progress" class="daylight-progress" d="M20 88A130 74 0 0 1 280 88" pathLength="100"/>
+              <line class="daylight-ground" x1="8" y1="88" x2="292" y2="88"/>
+              <circle id="daylight-sun" class="daylight-sun" r="8" cx="20" cy="88"/>
+            </svg>
+            <dl class="daylight-times">
+              <div><dt><span data-icon="sunrise"></span><span data-i18n="detail.sunrise">日出</span></dt><dd id="detail-sunrise"></dd></div>
+              <div><dt><span data-icon="sunset"></span><span data-i18n="detail.sunset">日落</span></dt><dd id="detail-sunset"></dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section id="hourly" class="panel" hidden>
+          <h2 class="panel-title" data-i18n="hourly.title">未來 24 小時(每 3 小時)</h2>
+          <svg id="hourly-chart" class="hourly-chart" viewBox="0 0 400 196" role="img" data-i18n-attrs="aria-label:hourly.aria" aria-label="未來 24 小時溫度變化"></svg>
+          <p class="panel-note" data-i18n="hourly.legend">圖下方藍字為降雨機率</p>
+        </section>
+
+        <section id="forecast" class="panel" hidden>
+          <h2 class="panel-title" data-i18n="forecast.title">5 天預報</h2>
+          <ul id="forecast-list" class="forecast-list"></ul>
+        </section>
+      </div>
+
+      <aside class="secondary">
+        <section id="advice" class="panel" hidden>
+          <h2 class="panel-title" data-i18n="advice.title">穿著與活動建議</h2>
+          <ul id="advice-list" class="advice-list"></ul>
+        </section>
+
+        <section id="air" class="panel" hidden>
+          <h2 class="panel-title" data-i18n="air.title">空氣品質</h2>
+          <p id="air-badge" class="air-badge"></p>
+          <ol id="air-scale" class="air-scale" aria-hidden="true">
+            <li></li><li></li><li></li><li></li><li></li>
+          </ol>
+          <p id="air-detail" class="air-detail"></p>
+          <p class="panel-note" data-i18n="air.note">依據 OpenWeather 空氣品質指數(1–5),與各國官方 AQI 標準不同。</p>
+        </section>
+
+        <section id="globe-card" class="panel panel-flat globe-panel" aria-labelledby="globe-title">
+          <h2 id="globe-title" class="panel-title" data-i18n="globe.title">地球模型</h2>
+          <div class="globe-stage">
+            <canvas
+              id="globe"
+              class="globe"
+              tabindex="0"
+              data-i18n-attrs="aria-label:globe.aria"
+              aria-label="可旋轉的地球模型"
+            ></canvas>
+          </div>
+          <div class="globe-controls">
+            <button id="globe-rotate" class="chip-button" type="button" aria-pressed="false" data-i18n="globe.rotate">自動旋轉</button>
+            <button id="globe-daynight" class="chip-button" type="button" aria-pressed="true" data-i18n="globe.daynight">日夜分界</button>
+            <button id="globe-cities" class="chip-button" type="button" aria-pressed="false" data-i18n="globe.cities">城市溫度</button>
+            <button id="globe-quakes" class="chip-button" type="button" aria-pressed="false" data-i18n="globe.quakes">地震</button>
+            <button id="globe-satellite" class="chip-button" type="button" aria-pressed="false" disabled data-i18n="globe.satellite">衛星雲圖</button>
+            <button id="globe-clouds" class="chip-button" type="button" aria-pressed="false" disabled data-i18n="globe.clouds">即時雲層</button>
+            <button id="globe-iss" class="chip-button" type="button" aria-pressed="false" data-i18n="globe.iss">ISS 即時位置</button>
+            <button id="globe-grid" class="chip-button" type="button" aria-pressed="false" data-i18n="globe.grid">經緯線</button>
+            <button id="globe-focus" class="chip-button" type="button" disabled data-i18n="globe.focus">回到查詢城市</button>
+            <button id="globe-reload" class="chip-button" type="button" data-i18n="globe.reload">重新載入</button>
+          </div>
+          <p id="globe-live" class="globe-live" role="timer"></p>
+          <p id="globe-status" class="panel-note globe-status" role="status" hidden></p>
+          <p class="panel-note globe-credit" data-i18n="globe.credit">底圖與衛星雲圖:NASA GIBS(Blue Marble、MODIS)
+地震:USGS
+拖曳旋轉,點擊查詢天氣</p>
+        </section>
+      </aside>
+    </div>
+    <footer class="footer">
+      <p data-i18n="footer.credit">天氣資料來自 OpenWeather</p>
+    </footer>
+  </main>
+
+  <script src="config.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
